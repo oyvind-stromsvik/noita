@@ -1,14 +1,14 @@
-# Ignore everything
+# Ignore everything.
 /*
 /*/
 
-# Except for the gitignore file itself.
-!.gitignore
-
-# And these folders.
+# Except for these folders.
 !/Assets/
 !/ProjectSettings/
 !/Packages/
 
-# And the screenshot file.
+
+# And these files.
+!.gitignore
 !noita.png
+!LICENSE
