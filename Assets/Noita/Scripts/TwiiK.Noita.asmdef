@@ -1,0 +1,14 @@
+{
+    "name": "TwiiK.Noita",
+    "rootNamespace": "",
+    "references": ["GUID:b220b2f50dccfc44895089d62853e5fd"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
