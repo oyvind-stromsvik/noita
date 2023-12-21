@@ -6,6 +6,9 @@ Initially I started out following Sharp Accent's Lemmings tutorial (https://shar
 
 I knew I wanted to try doing some pixel stuff in Unity, but I also wanted to test how "brute forced" you could do such things. Currently all the pixel destruction and physics takes place inside a single texture, using Texture2D.Apply() every frame to update the texture, and other "you should never do this" approaches, but even when testing on a 10 year old macbook this runs perfectly fluid, so clearly even if this is extremely unoptimized it's more than fine for an actual game.
 
+Screenshot from the game as it stands at the moment:  
+![Noita screenshot](/noita.png)
+
 ## In-game controls
 
 **Movement:** WASD  

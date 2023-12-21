@@ -9,3 +9,6 @@
 !/Assets/
 !/ProjectSettings/
 !/Packages/
+
+# And the screenshot file.
+!noita.png
