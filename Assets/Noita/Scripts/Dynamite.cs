@@ -39,7 +39,7 @@ namespace Noita {
             }
             
             // Apply gravity.
-            velocity += Physics2D.gravity * Time.deltaTime;
+            velocity += GameManager.Instance.gravity * Time.deltaTime;
             _subPixelPositionRemainder += velocity * Time.deltaTime;
 
             Vector2 actualMoveAmount = new Vector2(
