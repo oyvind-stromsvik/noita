@@ -13,7 +13,9 @@ Screenshot from the game as it stands at the moment:
 
 **Movement:** WASD  
 **Throw dynamite towards cursor:** Left mouse button  
-**Erase pixels at cursor:** Right mouse button
+**Erase pixels at cursor:** Right mouse button  
+**Paint concrete pixels at cursor:** Middle mouse button  
+**Paint falling sand particles at cursor:** Fourth mouse button  
 
 ## Credits/Copyright
 ### Sounds
