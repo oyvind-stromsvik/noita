@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Noita {
 
@@ -24,7 +25,7 @@ namespace Noita {
         private void Update() {
             _position = transform.position;
             
-            if (Input.GetMouseButtonDown(0)) {
+            if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject()) {
                 Dynamite dynamite = Instantiate(dynamitePrefab, _position + Vector2.up * 5, Quaternion.identity);
                 // Launch the dynamite towards the mouse position.
                 Vector2 direction = (GameManager.Instance.MousePosition - _position).normalized;

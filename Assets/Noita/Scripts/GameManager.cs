@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using TwiiK.Utility;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using Color = UnityEngine.Color;
 using Random = UnityEngine.Random;
 
@@ -11,16 +13,23 @@ namespace Noita {
     /// </summary>
     public class GameManager : Singleton<GameManager> {
         
-        public SpriteRenderer levelRenderer;
+        public Vector2 gravity = new Vector2(0, -156.96f); // -9,81 * 16.
+        [FormerlySerializedAs("bounce")] [Range(0, 1)]
+        public float bounciness = 0.0f;
+        [Range(0, 1)]
+        public float stickiness = 0.0f;
         
-        private Texture2D _levelTexture;
+        public SpriteRenderer levelRenderer;
+        [HideInInspector]
+        public Texture2D levelTexture;
+        
+        private Node[,] _grid;
         private int _maxX;
         private int _maxY;
-        private Node[,] _grid;
         private Node _currentNode;
         private Node _previousNode;
         private bool _levelTextureNeedsUpdate;
-        private List<Particle> _fallingParticles = new List<Particle>(); 
+        private List<Particle> _fallingParticles = new List<Particle>();
         private Texture2D _levelTextureSourceFile;
         private Vector2 _mousePosition;
         
@@ -39,7 +48,7 @@ namespace Noita {
             
             if (_levelTextureNeedsUpdate) {
                 _levelTextureNeedsUpdate = false;
-                _levelTexture.Apply();
+                levelTexture.Apply();
             }
         }
         
@@ -47,10 +56,10 @@ namespace Noita {
         /// Create a grid of nodes from the level texture.
         /// </summary>
         private void CreateLevel() {
-            _levelTexture = Instantiate(levelRenderer.sprite.texture);
+            levelTexture = Instantiate(levelRenderer.sprite.texture);
 
-            _maxX = _levelTexture.width;
-            _maxY = _levelTexture.height;
+            _maxX = levelTexture.width;
+            _maxY = levelTexture.height;
             _grid = new Node[_maxX, _maxY];
 
             for (int x = 0; x < _maxX; x++) {
@@ -58,7 +67,7 @@ namespace Noita {
                     Node node = new Node();
                     node.x = x;
                     node.y = y;
-                    Color color = _levelTexture.GetPixel(x, y);
+                    Color color = levelTexture.GetPixel(x, y);
                     if (color.a == 0) {
                         node.isEmpty = true;
                     }
@@ -66,7 +75,7 @@ namespace Noita {
                 }
             }
             
-            levelRenderer.sprite = Sprite.Create(_levelTexture, new Rect(0, 0, _maxX, _maxY), Vector2.zero, 1, 0, SpriteMeshType.FullRect);
+            levelRenderer.sprite = Sprite.Create(levelTexture, new Rect(0, 0, _maxX, _maxY), Vector2.zero, 1, 0, SpriteMeshType.FullRect);
         }
 
         /// <summary>
@@ -87,7 +96,7 @@ namespace Noita {
                 return;
             }
 
-            if (Input.GetMouseButton(1)) {
+            if (Input.GetMouseButton(1) && !EventSystem.current.IsPointerOverGameObject()) {
                 if (_currentNode != _previousNode) {
                     _previousNode = _currentNode;
                  
@@ -99,11 +108,48 @@ namespace Noita {
                             }
                             
                             node.isEmpty = true;
-                            _levelTexture.SetPixel(_currentNode.x + x, _currentNode.y + y, new Color(0, 0, 0, 0));
+                            levelTexture.SetPixel(node.x, node.y, new Color(0, 0, 0, 0));
                         }
                     }
                 }
                 
+                _levelTextureNeedsUpdate = true;
+            }
+            
+            if (Input.GetMouseButton(2) && !EventSystem.current.IsPointerOverGameObject()) {
+                if (_currentNode != _previousNode) {
+                    _previousNode = _currentNode;
+                    
+                    for (int x = -1; x <= 1; x++) {
+                        for (int y = -1; y <= 1; y++) {
+                            Node node = GetNode(_currentNode.x + x, _currentNode.y + y);
+                            if (node == null) {
+                                continue;
+                            }
+
+                            if (!node.isEmpty) {
+                                continue;
+                            }
+
+                            node.isEmpty = false;
+                            levelTexture.SetPixel(node.x, node.y, new Color(128f / 255, 128f / 255, 118f / 255, 1));
+                        }
+                    }
+                }
+                
+                _levelTextureNeedsUpdate = true;
+            }
+            
+            if (Input.GetMouseButton(3) && !EventSystem.current.IsPointerOverGameObject()) {
+                Node node = GetNode(_currentNode.x, _currentNode.y);
+                if (node.isEmpty) {
+                    _fallingParticles.Add(new Particle(
+                         new Color(246f / 255, 215f / 255, 176f / 255, 1),
+                        _currentNode.x,
+                        _currentNode.y,
+                        Vector2.zero
+                    ));
+                }
                 _levelTextureNeedsUpdate = true;
             }
         }
@@ -117,46 +163,12 @@ namespace Noita {
             }
             
             _levelTextureNeedsUpdate = true;
-            
+
             for (int i = 0; i < _fallingParticles.Count; i++) {
-                Particle particle = _fallingParticles[i];
-                particle.velocity += Physics2D.gravity * Time.deltaTime;
-                
-                particle.subPixelPositionRemainder += particle.velocity * Time.deltaTime;
-
-                Vector2Int actualMoveAmount = new Vector2Int(
-                    Mathf.RoundToInt(particle.subPixelPositionRemainder.x),
-                    Mathf.RoundToInt(particle.subPixelPositionRemainder.y)
-                );
-                
-                _levelTexture.SetPixel(particle.x, particle.y, particle.color);
-
-                if (actualMoveAmount == Vector2.zero) {
-                    continue;
-                }
-                
-                _levelTexture.SetPixel(particle.x, particle.y, new Color(0, 0, 0, 0));
-
-                if (actualMoveAmount.x != 0) {
-                    particle.subPixelPositionRemainder.x -= actualMoveAmount.x;
-                }
-                if (actualMoveAmount.y != 0) {
-                    particle.subPixelPositionRemainder.y -= actualMoveAmount.y;
-                }
-                
-                Node node = GetNode(particle.x + actualMoveAmount.x, particle.y + actualMoveAmount.y);
-                if (node != null && node.isEmpty) {
-                    particle.x += actualMoveAmount.x;
-                    particle.y += actualMoveAmount.y;
-                }
-                else {
-                    _fallingParticles.RemoveAt(i);
-                    i--;
-                    _grid[particle.x, particle.y].isEmpty = false;
-                }
-                
-                _levelTexture.SetPixel(particle.x, particle.y, particle.color);
+                _fallingParticles[i].Update(ref _fallingParticles, ref _grid, ref i);
             }
+            
+            DebugCanvas.Instance.UpdateFallingParticlesCount(_fallingParticles.Count);
         }
 
         /// <summary>
@@ -203,16 +215,16 @@ namespace Noita {
                 }
                 
                 if (Random.value <= amountOfParticlesToThrowInTheAir) {
-                    Particle particle = new Particle();
-                    particle.color = _levelTexture.GetPixel(node.x, node.y);
-                    particle.x = node.x;
-                    particle.y = node.y;
-                    particle.velocity = (new Vector2(node.x, node.y) - position) * 20f * Random.insideUnitCircle;
-                    _fallingParticles.Add(particle);
+                    _fallingParticles.Add(new Particle(
+                        levelTexture.GetPixel(node.x, node.y),
+                        node.x,
+                        node.y,
+                        (new Vector2(node.x, node.y) - position) * 20f * Random.insideUnitCircle
+                    ));
                 }
 
                 node.isEmpty = true;
-                _levelTexture.SetPixel(node.x, node.y, new Color(0, 0, 0, 0));
+                levelTexture.SetPixel(node.x, node.y, new Color(0, 0, 0, 0));
                 _levelTextureNeedsUpdate = true;
             }
         }
@@ -243,6 +255,20 @@ namespace Noita {
             return pointsInCircle.ToArray();
         }
 
+        /// <summary>
+        /// Get a node from the grid.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public Node GetNode(int x, int y) {
+            if (x >= 0 && x < _maxX && y >= 0 && y < _maxY) {
+                return _grid[x, y];
+            }
+            
+            return null;
+        }
+        
         private static float GetDistance(Vector2 p1, Vector2 p2) {
             float dx = p2.x - p1.x;
             float dy = p2.y - p1.y;
@@ -259,20 +285,6 @@ namespace Noita {
             int x = Mathf.FloorToInt(worldPosition.x);
             int y = Mathf.FloorToInt(worldPosition.y);
             return GetNode(x, y);
-        }
-
-        /// <summary>
-        /// Get a node from the grid.
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <returns></returns>
-        private Node GetNode(int x, int y) {
-            if (x >= 0 && x < _maxX && y >= 0 && y < _maxY) {
-                return _grid[x, y];
-            }
-            
-            return null;
         }
 
     }
